@@ -161,6 +161,84 @@ class AmazoneApi(object):
 
         return data
         # return base64.b64encode(hmac.new(key_bytes, data_bytes, hashlib.sha256))
+
+    def deleteProduct(self,sku):
+        self.action = "SubmitFeed"
+        contentbody = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <AmazonEnvelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="amzn-envelope.xsd">
+          <Header>
+            <DocumentVersion>1.01</DocumentVersion>
+            <MerchantIdentifier>"""+self.merchant+"""</MerchantIdentifier>
+          </Header>
+          <MessageType>Product</MessageType>
+          <Message>
+            <MessageID>1</MessageID>
+            <OperationType>Delete</OperationType>
+            <Product>
+              <SKU>"""+sku+"""</SKU>
+            </Product>
+          </Message>
+        </AmazonEnvelope>
+        """
+        self.feedtype = "_POST_PRODUCT_DATA_"
+        m = hashlib.md5()
+        m.update(contentbody.encode('utf-8'))
+        print("contentmd5")
+        digestvalue = m.digest()
+        print(digestvalue)
+        self.contentmd5 = (base64.b64encode(digestvalue)).decode()
+        print(self.contentmd5)
+        signature = self.getSignature()
+        signature = signature.decode()
+        params = self.getParam()+"&Signature="+quote(signature)
+        request_url = self.host+"?"+params
+        headers = {'content-type': 'text/xml'}
+        feedlist = requests.post(request_url,data=contentbody,headers=headers)
+        root = ET.fromstring(feedlist.content)
+        for child in root.iter('*'):
+            print(child.tag)
+        print("-------------------------------")
+        print(feedlist.content)
+
+    def updatePrice(self,price,sku):
+        self.action = "SubmitFeed"
+        msgid = random.randint(0,1000)
+        contentbody = """
+        <?xml version="1.0" encoding="utf-8"?>
+        <AmazonEnvelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="amzn-envelope.xsd">
+        <Header>
+        <DocumentVersion>1.01</DocumentVersion>
+        <MerchantIdentifier>"""+self.merchant+"""</MerchantIdentifier>
+        </Header>
+        <MessageType>Price</MessageType>
+        <Message>
+          <MessageID>"""+str(msgid)+"""</MessageID>
+          <Price>
+            <SKU>"""+sku+"""</SKU>
+            <StandardPrice currency="USD">"""+str(price)+"""</StandardPrice>
+          </Price>
+        </Message>
+        </AmazonEnvelope>
+        """
+        self.feedtype = "_POST_PRODUCT_PRICING_DATA_"
+        m = hashlib.md5()
+        m.update(contentbody.encode('utf-8'))
+        print("contentmd5")
+        digestvalue = m.digest()
+        print(digestvalue)
+        self.contentmd5 = (base64.b64encode(digestvalue)).decode()
+        print(self.contentmd5)
+        signature = self.getSignature()
+        signature = signature.decode()
+        params = self.getParam()+"&Signature="+quote(signature)
+        request_url = self.host+"?"+params
+        headers = {'content-type': 'text/xml'}
+        feedlist = requests.post(request_url,data=contentbody,headers=headers)
+        root = ET.fromstring(feedlist.content)
+        for child in root.iter('*'):
+            print(child.tag)
+
 a = AmazoneApi("AKIAIUFSF6B7TP5RYJ3A","inne0ux16QVqSI73g0IN5qK2fKErTBX2PJSZLGB9","amzn.mws.42b059b1-50ee-d065-34c8-231ed474b401","A1IF11LNLJA1GU","ATVPDKIKX0DER")
 # a.getFeedList()
 with open('products.csv') as csvfile:
@@ -174,3 +252,26 @@ with open('products.csv') as csvfile:
         else:
             counter = counter + 1
         print("-----------------------------------------------------------------")
+
+"""
+Update product price
+"""
+# a.updatePrice(<price>, <sku>)
+a.updatePrice(16.4,"86542XA04A943")
+# with open('sku.txt') as skus:
+#     sku_data = skus.read()
+#     sku_list = sku_data.splitlines()
+#     for sku in sku_list:
+#         a.updatePrice(109.4,sku)
+#         time.sleep(5)
+"""
+Delete product
+"""
+# a.deleteProduct(sku)
+a.deleteProduct("86542XA04A943")
+# with open('sku.txt') as skus:
+#     sku_data = skus.read()
+#     sku_list = sku_data.splitlines()
+#     for sku in sku_list:
+#         a.deleteProduct(sku)
+#         time.sleep(5)
